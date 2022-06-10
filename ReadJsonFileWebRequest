@@ -1,0 +1,126 @@
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+
+
+namespace AnfasAPI.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ServiceController : ControllerBase
+    {
+        private IDoctorService _doctorService;
+        private readonly IPatientService _patientService;
+        private UserManager<ApplicationUser> _userManager;
+        private IAuthService _authService;
+        private ApplicationDbContext _context;
+        private IWebHostEnvironment _hostingEnvironment;
+
+        // HttpClient is intended to be instantiated once per application, rather than per-use. See Remarks.
+        static readonly HttpClient client = new HttpClient();
+
+        public ServiceController(
+            ApplicationDbContext context,
+            IWebHostEnvironment hostingEnvironment,
+            IDoctorService doctorService,
+            UserManager<ApplicationUser> userManager,
+            IPatientService patientService,
+            IAuthService authService
+        )
+        {
+            _doctorService = doctorService;
+            _userManager = userManager;
+            _patientService = patientService;
+            _authService = authService;
+            _context = context;
+            _hostingEnvironment = hostingEnvironment;
+        }
+
+
+
+public  class Token  
+{  
+    public string access_token { get; set; }  
+    public string token_type { get; set; }  
+    public string expires_on { get; set; }  
+ 
+}  
+        #region HitWebRequest
+        [HttpPost]
+        [Route("HitWebRequest")]
+        public async Task<IActionResult> HitWebRequest()
+        {
+            // Call asynchronous network methods in a try/catch block to handle exceptions.
+            try
+            {
+                //client.//BaseAddress = new Uri("https://chefme-dev-148db59e1b78301d5devaos.cloudax.dynamics.com");
+                var content = new FormUrlEncodedContent(new[] 
+            {
+
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("client_id", "5ad242c9-0295-4633-abf6-9948d5a303fc"),
+                new KeyValuePair<string, string>("client_secret", "oeR7Q~vGE-6adXoR24fxP_k4lZIuPFS2j3IK2"),
+                new KeyValuePair<string, string>("resource", "https://chefme-dev-148db59e1b78301d5devaos.cloudax.dynamics.com"),
+
+            });
+
+            var responseBody = client.PostAsync("https://login.microsoftonline.com/ae756b17-d8d9-4871-8135-e60302398f96/oauth2/token/", content).Result;
+            string resultContent = responseBody.Content.ReadAsStringAsync().Result;
+
+            Token tokObj = JsonConvert.DeserializeObject<Token>(resultContent);  
+  
+            var token = tokObj.access_token;  
+
+            // JObject json = JObject.Parse(resultContent);
+            // foreach (var e in json)
+            // {
+            //     Console.WriteLine(e);
+            // }
+            //     Dictionary<string, string> data = new Dictionary<string, string>();
+            //     data.Add("grant_type", "client_credentials");
+            //     data.Add("client_id", "5ad242c9-0295-4633-abf6-9948d5a303fc");
+            //     data.Add("client_secret", "oeR7Q~vGE-6adXoR24fxP_k4lZIuPFS2j3IK2");
+            //     data.Add("resource", "https://chefme-dev-148db59e1b78301d5devaos.cloudax.dynamics.com");
+            
+            // var responseBody = client.PostAsync("https://login.microsoftonline.com/ae756b17-d8d9-4871-8135-e60302398f96/oauth2/token/", data.ToString());
+
+                // foreach (KeyValuePair<string, int> item in data)
+                // {
+                //     Console.WriteLine(item.Key + ": " + item.Value);
+                // }
+                // HttpResponseMessage response = await client.PostAsync(
+                //     "https://login.microsoftonline.com/ae756b17-d8d9-4871-8135-e60302398f96/oauth2/token/"
+                // );
+                // response.EnsureSuccessStatusCode();
+                // var responseBody = response.Content.ReadAsStringAsync().Result;
+                // Above three lines can be replaced with new helper method below
+                // string responseBody = await client.GetStringAsync(uri);
+
+
+                Console.WriteLine(responseBody);
+
+                return Ok(
+                    new ApiResponseModel
+                    {
+                        status = true,
+                        data = responseBody,
+                        message = ResponseMessages.msgShownSuccess,
+                        code = StatusCodes.Status200OK
+                    }
+                );
+            }
+            catch (HttpRequestException e)
+            {
+                Console.WriteLine("\nException Caught!");
+                Console.WriteLine("Message :{0} ", e.Message);
+                return Ok(
+                    new ApiResponseModel
+                    {
+                        status = false,
+                        data = new { },
+                        message = ResponseMessages.msgSomethingWentWrong,
+                        code = StatusCodes.Status500InternalServerError
+                    }
+                );
+            }
+        }
+        #endregion
